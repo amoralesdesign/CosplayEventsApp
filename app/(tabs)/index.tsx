@@ -15,7 +15,6 @@ import { Calendar, LocaleConfig } from 'react-native-calendars';
 import RNCalendarEvents from 'react-native-calendar-events';
 import { supabase } from '@/lib/supabase';
 
-// Configuración del idioma del calendario
 LocaleConfig.locales['es'] = {
   monthNames: [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
