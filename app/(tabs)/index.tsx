@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome5';
 import FeatherIcon from 'react-native-vector-icons/Feather';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
-import RNCalendarEvents from 'react-native-calendar-events';
+import { Calendar as CalendarUI, LocaleConfig } from 'react-native-calendars';
+import * as Calendar from 'expo-calendar';
 import { supabase } from '@/lib/supabase';
 
 LocaleConfig.locales['es'] = {
@@ -159,24 +159,6 @@ export default function Example() {
     }
   };
 
-  
-
-  // Función para seleccionar un mes completo
-  const handleMonthSelect = (month) => {
-    const newSelectedDates = { ...selectedDates };
-    const year = new Date().getFullYear();
-
-    // Obtener todos los días del mes
-    const daysInMonth = new Date(year, month, 0).getDate();
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      newSelectedDates[date] = { selected: true, selectedColor: '#ea266d' };
-    }
-
-    setSelectedDates(newSelectedDates);
-  };
-
-  // Función para filtrar los eventos según los tipos seleccionados
   const filteredEvents = events.filter(event => {
     const eventDate = new Date(event.date);
     const startDate = new Date(dateRange.startDate);
@@ -198,24 +180,27 @@ export default function Example() {
     return uniqueTypes;
   }, [filteredEvents]);
 
-  // Función para agregar un evento al calendario nativo
   const addToCalendar = async (event) => {
     try {
-      // Solicitar permiso para acceder al calendario
-      const status = await RNCalendarEvents.requestPermissions();
-      if (status !== 'authorized') {
+      // Solicitar permisos para acceder al calendario
+      const { status } = await Calendar.requestCalendarPermissionsAsync();
+      if (status !== 'granted') {
         Alert.alert('Permiso denegado', 'Necesitas permitir el acceso al calendario.');
         return;
       }
-
+  
+      // Obtener el calendario predeterminado
+      const defaultCalendar = await Calendar.getDefaultCalendarAsync();
+  
       // Crear el evento en el calendario
-      await RNCalendarEvents.saveEvent(event.name, {
-        startDate: new Date(event.date).toISOString(),
-        endDate: new Date(event.date).toISOString(),
+      await Calendar.createEventAsync(defaultCalendar.id, {
+        title: event.name,
+        startDate: new Date(event.date),
+        endDate: new Date(event.date),
         location: `${event.city}, ${event.country}`,
         notes: event.description,
       });
-
+  
       Alert.alert('Evento agregado', 'El evento se ha añadido a tu calendario.');
     } catch (error) {
       console.error('Error al agregar el evento:', error);
@@ -248,23 +233,23 @@ export default function Example() {
           </View>
         </View>
 
-        <View style={styles.headerTitleContainer}>
+        <View>
           <Text style={styles.headerTitle}>Eventos</Text>
           <TouchableOpacity
-            style={styles.datePickerButton}
-            onPress={() => setShowCalendar(!showCalendar)}>
-            <Text style={styles.datePickerButtonText}>
-              {dateRange.startDate && dateRange.endDate
-                ? `Del ${formatDate(dateRange.startDate)} al ${formatDate(dateRange.endDate)} (Editar)`
-                : 'Seleccionar fechas'}
-            </Text>
+            onPress={() => setShowCalendar(!showCalendar)} style={styles.datePickerButton}>
+              <FontAwesome name="calendar" size={16} color="white"  />
+              <Text style={styles.whiteBoldText}>
+                {dateRange.startDate && dateRange.endDate
+                  ? `Del ${formatDate(dateRange.startDate)} al ${formatDate(dateRange.endDate)} (Editar)`
+                  : 'Seleccionar fechas'}
+              </Text>
           </TouchableOpacity>
         </View>
 
          {/* Calendario */}
          {showCalendar && (
-          <View style={styles.calendarContainer}>
-            <Calendar
+          <View>
+            <CalendarUI
               markingType={'period'}
               onDayPress={handleDateSelect}
               markedDates={{
@@ -355,6 +340,13 @@ export default function Example() {
                     <Text style={styles.cardPrice}>
                       {description}
                     </Text>
+                    
+                    <TouchableOpacity
+                      style={styles.saveEventButton}
+                      onPress={() => addToCalendar({ name, date, city, country, description })}
+                    >
+                      <Text style={styles.whiteBoldText}>Guardar evento</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -370,6 +362,31 @@ const styles = StyleSheet.create({
   content: {
     paddingTop: 8,
     paddingHorizontal: 16,
+  },
+  saveEventButton: {
+    backgroundColor: "#4dc586",
+    alignSelf: 'flex-start',
+    padding: 10,
+    marginBlockStart: 10,
+    borderRadius: 4,
+    color: 'white',
+  },
+  datePickerButton: {
+    padding: 10,
+    backgroundColor: '#ea266d',
+    color: 'white',
+    borderRadius: 4,
+    marginBlockStart: 10,
+    marginBlockEnd: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 8,
+    alignSelf: 'flex-start',
+  },
+  whiteBoldText: {
+    color: 'white',
+    fontWeight: 600,
   },
   /** Header */
   header: {
