@@ -43,23 +43,23 @@ export default function Example() {
   // Función para obtener los eventos desde Supabase
   useEffect(() => {
     const fetchEvents = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('events')
-          .select('*');
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('start_date', { ascending: true });
 
-        if (error) {
-          console.error('Error fetching events:', error);
-        } else {
-          console.log('Events received:', data);
-          setEvents(data);
-        }
-      } catch (error) {
-        console.error('Unexpected error:', error);
+      if (error) {
+        console.error('Error fetching events:', error);
+        return [];
       }
+
+      return data;
     };
 
-    fetchEvents();
+    fetchEvents().then(data => {
+      console.log('Events received:', data);
+      setEvents(data);
+    });
   }, []);
 
  
@@ -76,16 +76,26 @@ export default function Example() {
   };
 
   // Función para manejar la selección de fechas
-  const handleDateSelect = (day) => {
-    const { startDate, endDate } = dateRange;
+  const handleDateSelect = (date) => {
+    const selectedDate = new Date(date.dateString);
 
-    if (!startDate || (startDate && endDate)) {
-      // Si no hay fecha de inicio o ya hay un rango completo, reiniciar
-      setDateRange({ startDate: day.dateString, endDate: null });
-      setSelectedDates({}); // Limpiar el rango anterior
+    console.log('Selected Date:', selectedDate);
+
+    // Si ya hay un rango completo seleccionado, lo limpiamos antes de seleccionar uno nuevo
+    if (dateRange.startDate && dateRange.endDate) {
+      console.log('Clearing previous date range');
+      setDateRange({ startDate: null, endDate: null });
+    }
+
+    if (!dateRange.startDate || (dateRange.startDate && dateRange.endDate)) {
+      console.log('Setting start date:', selectedDate);
+      setDateRange({ startDate: selectedDate, endDate: null });
+    } else if (selectedDate >= dateRange.startDate) {
+      console.log('Setting end date:', selectedDate);
+      setDateRange({ ...dateRange, endDate: selectedDate });
     } else {
-      // Si hay fecha de inicio pero no de fin, completar el rango
-      setDateRange({ startDate, endDate: day.dateString });
+      console.log('Swapping start and end dates');
+      setDateRange({ startDate: selectedDate, endDate: dateRange.startDate });
     }
   };
 
@@ -97,44 +107,43 @@ export default function Example() {
     console.log('End Date:', endDate);
 
     if (startDate && endDate) {
-      const start = new Date(startDate + 'T00:00:00Z'); // Forzar hora UTC
-      const end = new Date(endDate + 'T23:59:59Z'); // Incluir todo el día
+      const start = new Date(startDate);
+      const end = new Date(endDate);
       let current = new Date(start); // Crear una nueva instancia para evitar modificar start
 
-      console.log('Processing date range:', start, 'to', end);
+      console.log('Processing dates from:', start, 'to', end);
 
       // Ajustar la condición para incluir la fecha final
       while (current <= end) {
         const date = current.toISOString().split('T')[0];
-        console.log('Processing date:', date);
         
         if (current.getTime() === start.getTime()) {
-          console.log('Marking start date:', date);
           markedDates[date] = { 
             startingDay: true,
             color: '#ea266d', // Color intenso para inicio
             textColor: 'white'
           };
-        } else if (current.toISOString().split('T')[0] === end.toISOString().split('T')[0]) {
-          console.log('Marking end date:', date);
+          console.log('Marked start date:', date);
+        } else if (current.getTime() === end.getTime()) {
           markedDates[date] = { 
             endingDay: true,
             color: '#ea266d', // Color intenso para fin
             textColor: 'white'
           };
+          console.log('Marked end date:', date);
         } else {
-          console.log('Marking intermediate date:', date);
           markedDates[date] = { 
             color: '#f8a5c2', // Color más suave para días intermedios
             textColor: 'white'
           };
+          console.log('Marked intermediate date:', date);
         }
         
-        current.setDate(current.getDate() + 1);
+        current.setDate(current.getDate() + 1); // Avanzar al siguiente día
       }
     } else if (startDate) {
-      console.log('Single date selected:', startDate);
-      markedDates[startDate] = { 
+      const date = startDate.toISOString().split('T')[0];
+      markedDates[date] = { 
         selected: true,
         color: '#ea266d',
         textColor: 'white',
@@ -143,24 +152,27 @@ export default function Example() {
       };
     }
 
-    console.log('Final markedDates:', markedDates);
     return markedDates;
   };
 
   const saveDateRange = () => {
     const { startDate, endDate } = dateRange;
+
     if (startDate && endDate) {
       const newSelectedDates = getMarkedDates();
       console.log('New selected dates:', newSelectedDates); // Debugging
       setSelectedDates(newSelectedDates);
       setShowCalendar(false);
+
+      
     } else {
       Alert.alert('Error', 'Selecciona un rango de fechas válido.');
     }
   };
 
   const filteredEvents = events.filter(event => {
-    const eventDate = new Date(event.date);
+    const eventStartDate = new Date(event.start_date);
+    const eventEndDate = new Date(event.end_date);
     const startDate = new Date(dateRange.startDate);
     const endDate = new Date(dateRange.endDate);
 
@@ -169,7 +181,12 @@ export default function Example() {
     }
 
     if (dateRange.startDate && dateRange.endDate) {
-      return eventDate >= startDate && eventDate <= endDate; // Filtrar por rango de fechas
+      // Verifica si el rango de fechas del evento se solapa con el rango seleccionado
+      return (
+        (eventStartDate >= startDate && eventStartDate <= endDate) ||
+          (eventEndDate >= startDate && eventEndDate <= endDate) ||
+          (eventStartDate <= startDate && eventEndDate >= endDate)
+      );
     }
 
     return true; // Mostrar todos los eventos si no hay rango seleccionado
@@ -209,9 +226,31 @@ export default function Example() {
   };
 
   // Añadir una función para formatear las fechas
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+  const formatDateRange = (startDate, endDate) => {
+    const start = new Date(startDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+    const end = new Date(endDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+    return `Del ${start} al ${end}`;
+  };
+
+  const saveEvent = async (event) => {
+    const { startDate, endDate } = event;
+
+    const { data, error } = await supabase
+      .from('events')
+      .insert([
+        {
+          name: event.name,
+          start_date: startDate,
+          end_date: endDate,
+          // ... otros campos del evento
+        },
+      ]);
+
+    if (error) {
+      console.error('Error saving event:', error);
+    } else {
+      console.log('Event saved successfully:', data);
+    }
   };
 
   return (
@@ -237,10 +276,10 @@ export default function Example() {
           <Text style={styles.headerTitle}>Eventos</Text>
           <TouchableOpacity
             onPress={() => setShowCalendar(!showCalendar)} style={styles.datePickerButton}>
-              <FontAwesome name="calendar" size={16} color="white"  />
+              <FontAwesome name="calendar" size={16} color="white" />
               <Text style={styles.whiteBoldText}>
                 {dateRange.startDate && dateRange.endDate
-                  ? `Del ${formatDate(dateRange.startDate)} al ${formatDate(dateRange.endDate)} (Editar)`
+                  ? formatDateRange(dateRange.startDate, dateRange.endDate) + ' (Editar)'
                   : 'Seleccionar fechas'}
               </Text>
           </TouchableOpacity>
@@ -289,7 +328,7 @@ export default function Example() {
 
       <ScrollView contentContainerStyle={styles.content}>
         {filteredEvents.map(
-          ({ id, mainimage, name, date, description, rating, address, city, country }, index) => {
+          ({ id, mainimage, name, start_date, end_date, description, rating, address, city, country }, index) => {
             const isSaved = saved.includes(id);
 
             return (
@@ -333,7 +372,7 @@ export default function Example() {
                       <Text style={styles.cardStars}>{rating}</Text>
                     </View>
 
-                    <Text style={styles.cardDates}>{date}</Text>
+                    <Text style={styles.cardDates}>Del {start_date} al {end_date}</Text>
 
                     <Text>{address}, {city} ({country})</Text>
 
