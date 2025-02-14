@@ -78,15 +78,15 @@ export default function Example() {
   // Función para manejar la selección de fechas
   const handleDateSelect = (date) => {
     const selectedDate = new Date(date.dateString);
-
+  
     console.log('Selected Date:', selectedDate);
-
+  
     // Si ya hay un rango completo seleccionado, lo limpiamos antes de seleccionar uno nuevo
     if (dateRange.startDate && dateRange.endDate) {
       console.log('Clearing previous date range');
       setDateRange({ startDate: null, endDate: null });
     }
-
+  
     if (!dateRange.startDate || (dateRange.startDate && dateRange.endDate)) {
       console.log('Setting start date:', selectedDate);
       setDateRange({ startDate: selectedDate, endDate: null });
@@ -99,61 +99,73 @@ export default function Example() {
     }
   };
 
-  const getMarkedDates = () => {
-    const { startDate, endDate } = dateRange;
-    const markedDates = {};
+  // ... existing code ...
 
-    console.log('Start Date:', startDate);
-    console.log('End Date:', endDate);
+  // ... existing code ...
 
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      let current = new Date(start); // Crear una nueva instancia para evitar modificar start
+const getMarkedDates = () => {
+  const { startDate, endDate } = dateRange;
+  const markedDates = {};
 
-      console.log('Processing dates from:', start, 'to', end);
+  if (startDate && endDate) {
+    // Convertir las fechas a cadenas si son objetos Date
+    const startStr = startDate instanceof Date ? startDate.toISOString().split('T')[0] : startDate;
+    const endStr = endDate instanceof Date ? endDate.toISOString().split('T')[0] : endDate;
 
-      // Ajustar la condición para incluir la fecha final
-      while (current <= end) {
-        const date = current.toISOString().split('T')[0];
-        
-        if (current.getTime() === start.getTime()) {
-          markedDates[date] = { 
-            startingDay: true,
-            color: '#ea266d', // Color intenso para inicio
-            textColor: 'white'
-          };
-          console.log('Marked start date:', date);
-        } else if (current.getTime() === end.getTime()) {
-          markedDates[date] = { 
-            endingDay: true,
-            color: '#ea266d', // Color intenso para fin
-            textColor: 'white'
-          };
-          console.log('Marked end date:', date);
-        } else {
-          markedDates[date] = { 
-            color: '#f8a5c2', // Color más suave para días intermedios
-            textColor: 'white'
-          };
-          console.log('Marked intermediate date:', date);
-        }
-        
-        current.setDate(current.getDate() + 1); // Avanzar al siguiente día
+    // Forzar la hora UTC para evitar problemas con la zona horaria
+    const start = new Date(startStr + 'T00:00:00Z');
+    const end = new Date(endStr + 'T23:59:59Z');
+    let current = new Date(start); // Crear una nueva instancia para evitar modificar start
+
+    console.log('Processing dates from:', start, 'to', end);
+
+    // Ajustar la condición para incluir la fecha final
+    while (current <= end) {
+      const date = current.toISOString().split('T')[0];
+      
+      if (current.getTime() === start.getTime()) {
+        markedDates[date] = { 
+          startingDay: true,
+          color: '#ea266d', // Color intenso para inicio
+          textColor: 'white'
+        };
+        console.log('Marked start date:', date);
+      } else if (date === endStr) { // Comparar solo la fecha (sin la hora)
+        markedDates[date] = { 
+          endingDay: true,
+          color: '#ea266d', // Color intenso para fin
+          textColor: 'white'
+        };
+        console.log('Marked end date:', date);
+      } else {
+        markedDates[date] = { 
+          color: '#f8a5c2', // Color más suave para días intermedios
+          textColor: 'white'
+        };
+        console.log('Marked intermediate date:', date);
       }
-    } else if (startDate) {
-      const date = startDate.toISOString().split('T')[0];
-      markedDates[date] = { 
-        selected: true,
-        color: '#ea266d',
-        textColor: 'white',
-        startingDay: true,
-        endingDay: true
-      };
+      
+      current.setDate(current.getDate() + 1); // Avanzar al siguiente día
     }
+  } else if (startDate) {
+    const date = startDate instanceof Date ? startDate.toISOString().split('T')[0] : startDate;
+    markedDates[date] = { 
+      selected: true,
+      color: '#ea266d',
+      textColor: 'white',
+      startingDay: true,
+      endingDay: true
+    };
+    console.log('Marked single date:', date);
+  }
 
-    return markedDates;
-  };
+  console.log('Final markedDates:', markedDates);
+  return markedDates;
+};
+
+// ... existing code ...
+
+// ... existing code ...
 
   const saveDateRange = () => {
     const { startDate, endDate } = dateRange;
