@@ -8,6 +8,7 @@ import {
   Image,
   Text,
   Alert,
+  Linking
 } from 'react-native';
 import FontAwesome from 'react-native-vector-icons/FontAwesome5';
 import FeatherIcon from 'react-native-vector-icons/Feather';
@@ -224,8 +225,8 @@ const getMarkedDates = () => {
       // Crear el evento en el calendario
       await Calendar.createEventAsync(defaultCalendar.id, {
         title: event.name,
-        startDate: new Date(event.date),
-        endDate: new Date(event.date),
+        startDate: new Date(event.start_date),
+        endDate: new Date(event.end_date),
         location: `${event.city}, ${event.country}`,
         notes: event.description,
       });
@@ -365,7 +366,7 @@ const getMarkedDates = () => {
                   <View style={styles.cardTop}>
                     <Image
                       alt=""
-                      resizeMode="cover"
+                      resizeMode="contain"
                       style={styles.cardImg}
                       source={{ uri: mainimage }} />
                   </View>
@@ -394,9 +395,36 @@ const getMarkedDates = () => {
                     
                     <TouchableOpacity
                       style={styles.saveEventButton}
-                      onPress={() => addToCalendar({ name, date, city, country, description })}
+                      onPress={() => addToCalendar({ name, start_date, end_date, city, country, description })}
                     >
                       <Text style={styles.whiteBoldText}>Guardar evento</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.bookingButton}
+                      onPress={() => {
+                        // Construir la URL de búsqueda de Booking.com
+                        const searchParams = new URLSearchParams({
+                          ss: `${address}, ${city}`,
+                          aid: 'TU_ID_DE_AFILIADO', // Reemplaza con tu ID de afiliado
+                        });
+
+                        // Usar las fechas del evento si no hay un rango de fechas seleccionado
+                        const checkinDate = dateRange.startDate ? dateRange.startDate.toISOString().split('T')[0] : start_date.split('T')[0];
+                        const checkoutDate = dateRange.endDate ? dateRange.endDate.toISOString().split('T')[0] : end_date.split('T')[0];
+
+                        // Añadir fechas a la URL
+                        searchParams.set('checkin', checkinDate);
+                        searchParams.set('checkout', checkoutDate);
+
+                        const searchUrl = `https://www.booking.com/searchresults.es.html?${searchParams.toString()}`;
+                        console.log('Web URL:', searchUrl); // Depuración: URL para la web
+
+                        // Abrir la URL en el navegador (evitar la app)
+                        Linking.openURL(searchUrl);
+                      }}
+                    >
+                      <Text style={styles.whiteBoldText}>Ver alojamiento cerca</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -434,6 +462,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     gap: 8,
     alignSelf: 'flex-start',
+  },
+  bookingButton: {
+    backgroundColor: "#0071c2",
+    alignSelf: 'flex-start',
+    padding: 10,
+    marginBlockStart: 10,
+    borderRadius: 4,
+    color: 'white',
   },
   whiteBoldText: {
     color: 'white',
