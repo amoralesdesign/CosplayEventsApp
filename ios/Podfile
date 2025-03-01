@@ -31,6 +31,13 @@ target 'CosplayEvents' do
     ]
   end
 
+# @generated begin react-native-maps-dependencies - expo prebuild (DO NOT MODIFY) sync-f7f10dfc0b8dcb7c678a20e52680e312a8d7d70e
+
+# React Native Maps dependencies
+rn_maps_path = '../node_modules/react-native-maps'
+pod 'react-native-google-maps', :path => rn_maps_path
+
+# @generated end react-native-maps-dependencies
   config = use_native_modules!(config_command)
 
   use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']

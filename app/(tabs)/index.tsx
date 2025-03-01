@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
+
 import {
   StyleSheet,
   SafeAreaView,
@@ -15,6 +16,8 @@ import FeatherIcon from 'react-native-vector-icons/Feather';
 import { Calendar as CalendarUI, LocaleConfig } from 'react-native-calendars';
 import * as Calendar from 'expo-calendar';
 import { supabase } from '@/lib/supabase';
+import EventCard from '@/components/EventCard/EventCard';
+
 
 LocaleConfig.locales['es'] = {
   monthNames: [
@@ -100,9 +103,6 @@ export default function Example() {
     }
   };
 
-  // ... existing code ...
-
-  // ... existing code ...
 
 const getMarkedDates = () => {
   const { startDate, endDate } = dateRange;
@@ -210,33 +210,7 @@ const getMarkedDates = () => {
     return uniqueTypes;
   }, [filteredEvents]);
 
-  const addToCalendar = async (event) => {
-    try {
-      // Solicitar permisos para acceder al calendario
-      const { status } = await Calendar.requestCalendarPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permiso denegado', 'Necesitas permitir el acceso al calendario.');
-        return;
-      }
   
-      // Obtener el calendario predeterminado
-      const defaultCalendar = await Calendar.getDefaultCalendarAsync();
-  
-      // Crear el evento en el calendario
-      await Calendar.createEventAsync(defaultCalendar.id, {
-        title: event.name,
-        startDate: new Date(event.start_date),
-        endDate: new Date(event.end_date),
-        location: `${event.city}, ${event.country}`,
-        notes: event.description,
-      });
-  
-      Alert.alert('Evento agregado', 'El evento se ha añadido a tu calendario.');
-    } catch (error) {
-      console.error('Error al agregar el evento:', error);
-      Alert.alert('Error', 'No se pudo agregar el evento al calendario.');
-    }
-  };
 
   // Añadir una función para formatear las fechas
   const formatDateRange = (startDate, endDate) => {
@@ -341,94 +315,27 @@ const getMarkedDates = () => {
 
       <ScrollView contentContainerStyle={styles.content}>
         {filteredEvents.map(
-          ({ id, mainimage, name, start_date, end_date, description, rating, address, city, country }, index) => {
+          ({ id, mainimage, gallery, name, start_date, end_date, description, rating, address, city, country, latitude, longitude }, index) => {
             const isSaved = saved.includes(id);
 
             return (
-              <TouchableOpacity
+              <EventCard
                 key={id}
-                onPress={() => {
-                  // handle onPress
-                }}>
-                <View style={styles.card}>
-                  <View style={styles.cardLikeWrapper}>
-                    <TouchableOpacity onPress={() => handleSave(id)}>
-                      <View style={styles.cardLike}>
-                        <FontAwesome
-                          color={isSaved ? '#ea266d' : '#222'}
-                          name="heart"
-                          solid={isSaved}
-                          size={20} />
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.cardTop}>
-                    <Image
-                      alt=""
-                      resizeMode="contain"
-                      style={styles.cardImg}
-                      source={{ uri: mainimage }} />
-                  </View>
-
-                  <View style={styles.cardBody}>
-                    <View style={styles.cardHeader}>
-                      <Text style={styles.cardTitle}>{name}</Text>
-
-                      <FontAwesome
-                        color="#ea266d"
-                        name="star"
-                        solid={true}
-                        size={12}
-                        style={{ marginBottom: 2 }} />
-
-                      <Text style={styles.cardStars}>{rating}</Text>
-                    </View>
-
-                    <Text style={styles.cardDates}>Del {start_date} al {end_date}</Text>
-
-                    <Text>{address}, {city} ({country})</Text>
-
-                    <Text style={styles.cardPrice}>
-                      {description}
-                    </Text>
-                    
-                    <TouchableOpacity
-                      style={styles.saveEventButton}
-                      onPress={() => addToCalendar({ name, start_date, end_date, city, country, description })}
-                    >
-                      <Text style={styles.whiteBoldText}>Guardar evento</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.bookingButton}
-                      onPress={() => {
-                        // Construir la URL de búsqueda de Booking.com
-                        const searchParams = new URLSearchParams({
-                          ss: `${address}, ${city}`,
-                          aid: 'TU_ID_DE_AFILIADO', // Reemplaza con tu ID de afiliado
-                        });
-
-                        // Usar las fechas del evento si no hay un rango de fechas seleccionado
-                        const checkinDate = dateRange.startDate ? dateRange.startDate.toISOString().split('T')[0] : start_date.split('T')[0];
-                        const checkoutDate = dateRange.endDate ? dateRange.endDate.toISOString().split('T')[0] : end_date.split('T')[0];
-
-                        // Añadir fechas a la URL
-                        searchParams.set('checkin', checkinDate);
-                        searchParams.set('checkout', checkoutDate);
-
-                        const searchUrl = `https://www.booking.com/searchresults.es.html?${searchParams.toString()}`;
-                        console.log('Web URL:', searchUrl); // Depuración: URL para la web
-
-                        // Abrir la URL en el navegador (evitar la app)
-                        Linking.openURL(searchUrl);
-                      }}
-                    >
-                      <Text style={styles.whiteBoldText}>Ver alojamiento cerca</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </TouchableOpacity>
+                id={id}
+                mainimage={mainimage}
+                gallery={gallery}
+                name={name}
+                start_date={start_date}
+                end_date={end_date}
+                description={description}
+                rating={rating}
+                address={address}
+                city={city}
+                country={country}
+                latitude={latitude}
+                longitude={longitude}
+                isSaved={isSaved}
+              />
             );
           },
         )}
@@ -442,14 +349,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingHorizontal: 16,
   },
-  saveEventButton: {
-    backgroundColor: "#4dc586",
-    alignSelf: 'flex-start',
-    padding: 10,
-    marginBlockStart: 10,
-    borderRadius: 4,
-    color: 'white',
-  },
   datePickerButton: {
     padding: 10,
     backgroundColor: '#ea266d',
@@ -462,14 +361,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     gap: 8,
     alignSelf: 'flex-start',
-  },
-  bookingButton: {
-    backgroundColor: "#0071c2",
-    alignSelf: 'flex-start',
-    padding: 10,
-    marginBlockStart: 10,
-    borderRadius: 4,
-    color: 'white',
   },
   whiteBoldText: {
     color: 'white',

@@ -49,6 +49,8 @@
     <string>Allow $(PRODUCT_NAME) to access your calendars</string>
     <key>NSCalendarsUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your calendars</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>This app uses your location to show you on the map</string>
     <key>NSRemindersFullAccessUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your reminders</string>
     <key>NSRemindersUsageDescription</key>

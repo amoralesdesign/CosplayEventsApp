@@ -34,6 +34,12 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "react-native-maps-expo-plugin",
+        {
+          "googleMapsApiKey": "AIzaSyCNpahhLLG_NYiyglB0PTqVcJd2oOoLERU"
+        }
       ]
     ],
     "experiments": {
